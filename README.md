@@ -69,8 +69,6 @@ a indexação registra frequência e linhas distintas. Atualizar mantém chave e
 | `dados/` | Texto e entradas das demonstrações |
 | `resultados/` | Saídas dos testes, médias e análise |
 | `.gitignore` | Executáveis e objetos gerados que não entram no Git |
-| `docs/GUIA_DUPLA.md` | Responsabilidades, commits e entrega |
-| `docs/ROTEIRO_APRESENTACAO.md` | Divisão das falas e recompilação dos slides |
 | `slides/apresentacao.tex`, `slides/apresentacao.pdf` | Fonte LaTeX Beamer e apresentação final |
 
 O roteiro manual cobre os oito casos aplicáveis, com tabela vazia e cheia
