@@ -1,0 +1,490 @@
+% Apresentação Beamer da configuração 40.
+% Estilo Madrid baseado em presentation_1.tex, fornecido pelo usuário.
+% O conteúdo e os trechos C correspondem à versão atual do projeto.
+% Compilar: pdflatex -interaction=nonstopmode -halt-on-error apresentacao.tex
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{Madrid}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage{lmodern}
+\usepackage{booktabs,array,listings}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{\leavevmode\hbox{%
+\begin{beamercolorbox}[wd=.77\paperwidth,ht=2.6ex,dp=1.2ex,leftskip=1em]{author in head/foot}%
+Enthony | Douglas \hspace{1em} Tabela hash -- configuração 40
+\end{beamercolorbox}%
+\begin{beamercolorbox}[wd=.23\paperwidth,ht=2.6ex,dp=1.2ex,rightskip=1em plus1fil]{date in head/foot}%
+\hfill\insertframenumber/\inserttotalframenumber
+\end{beamercolorbox}}}
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+\setlength{\emergencystretch}{2em}
+\lstset{language=C,basicstyle=\ttfamily\small,keywordstyle=\color{blue!65!black},
+commentstyle=\color{green!35!black},stringstyle=\color{red!55!black},
+showstringspaces=false,columns=fullflexible,keepspaces=true,breaklines=true,
+frame=single,rulecolor=\color{blue!25},aboveskip=5pt,belowskip=5pt,
+literate={á}{{\'a}}1 {ã}{{\~a}}1 {â}{{\^a}}1 {à}{{\`a}}1
+{é}{{\'e}}1 {ê}{{\^e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {õ}{{\~o}}1
+{ô}{{\^o}}1 {ú}{{\'u}}1 {ç}{{\c c}}1 {Á}{{\'A}}1 {É}{{\'E}}1}
+\newcommand{\arquivo}[1]{{\small\texttt{\detokenize{#1}}}}
+\title[Tabela hash]{Tabela hash: índice de palavras}
+\subtitle{Configuração 40: E1.1, H4, C2 e A4}
+\author{Enthony Araujo de Oliveira \\ Douglas Patrick Cardozo Freitas}
+\institute{Estrutura de Dados II\\Professor: Kennedy Reurison Lopes}
+\date{}
+\begin{document}
+\begin{frame}\titlepage\end{frame}
+\begin{frame}{Objetivo e roteiro}
+\begin{block}{Objetivo do trabalho}
+Implementar uma tabela hash própria e usá-la para consultar palavras de um texto.
+\end{block}
+\begin{enumerate}
+\item Configuração e organização do projeto.
+\item Normalização, conversão, função hash e colisões.
+\item Operações e decisões da implementação.
+\item Testes de correção e análise experimental.
+\item Demonstração no terminal, com entradas e resultados esperados.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Nossa configuração: nº 40}
+\renewcommand{\arraystretch}{1.45}
+\begin{tabular}{@{}llp{8.7cm}@{}}\toprule
+Código & Escolha & Significado no projeto\\\midrule
+E1.1 & Vetor fixo & Capacidade escolhida ao criar, sem crescimento.\\
+H4 & Dobra & Soma de grupos decimais de quatro dígitos.\\
+C2 & Sondagem linear & Em colisão, procura a próxima posição.\\
+A4 & Índice de palavras & Palavra normalizada como chave, frequência e linhas como valor.\\\bottomrule
+\end{tabular}
+\medskip
+\begin{block}{Implementação própria em C11}
+Usamos vetores, strings, leitura de arquivo e temporização. Não usamos uma tabela hash pronta.
+\end{block}
+\end{frame}
+
+\begin{frame}{O que a aplicação A4 guarda}
+\begin{columns}[T]
+\column{.46\textwidth}
+\textbf{Exemplo de texto}\par\medskip
+\texttt{Linha 1: Hash hash!}\par
+\texttt{Linha 2: HASH e tabela.}\par\medskip
+A mesma palavra pode aparecer várias vezes, inclusive com caixa diferente.
+\column{.49\textwidth}
+\textbf{Depois da normalização}\par\medskip
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{lcl}\toprule
+Palavra & Frequência & Linhas\\\midrule
+hash & 3 & 1, 2\\
+e & 1 & 2\\
+tabela & 1 & 2\\\bottomrule
+\end{tabular}
+\end{columns}
+\bigskip
+\begin{block}{Frequência e linhas são informações diferentes}
+A frequência conta cada ocorrência. O vetor de linhas registra cada linha uma única vez durante a leitura sequencial.
+\end{block}
+\end{frame}
+
+\begin{frame}{Organização do código}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}lp{9.5cm}@{}}\toprule
+Arquivo & Responsabilidade\\\midrule
+\arquivo{src/tabela.h} & Tipos e declarações das operações.\\
+\arquivo{src/tabela.c} & Conversão, dobra, vetor, sondagem, operações e exibição.\\
+\arquivo{src/aplicacao.c} & Normalização e indexação do arquivo de texto.\\
+\arquivo{src/main.c} & Menu, entrada do usuário e abertura do arquivo.\\
+\arquivo{src/experimentos.c} & Medições experimentais. Correção pelo menu.\\\bottomrule
+\end{tabular}\par
+\medskip
+\textbf{Fluxo:} o menu chama a aplicação, que normaliza as palavras e usa as operações da tabela.
+\par\medskip
+Os cabeçalhos permitem que os arquivos compartilhem os mesmos tipos e funções.
+\end{frame}
+
+\begin{frame}[fragile]{Estruturas usadas na tabela}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\small]
+typedef struct {
+    char chave[TAM_PALAVRA];
+    int frequencia;
+    int *linhas;
+    size_t quantidade_linhas;
+} Palavra;
+
+typedef struct {
+    Estado estado;
+    Palavra palavra;
+} Posicao;
+\end{lstlisting}
+\begin{itemize}
+\item \texttt{chave}: palavra de até 255 bytes, mais o terminador da string.
+\item \texttt{linhas}: endereço do vetor de inteiros com as linhas do texto.
+\item Cada posição contém um registro e um estado: vazio, ocupado ou removido.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Normalização das palavras}
+\begin{itemize}
+\item Convertemos letras para minúsculas.
+\item Mapeamos os acentos portugueses tratados no código para a letra base.
+\item Na leitura do arquivo, espaços e pontuação separam as palavras.
+\item O menu espera uma palavra por vez e aplica a mesma normalização.
+\end{itemize}
+\medskip
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{ll}\toprule
+Entrada & Chave usada\\\midrule
+\texttt{Hash}, \texttt{HASH} & \texttt{hash}\\
+\texttt{Colisão,} & \texttt{colisao}\\
+\texttt{guarda-chuva} no arquivo & \texttt{guarda} e \texttt{chuva}\\\bottomrule
+\end{tabular}
+\medskip
+\begin{alertblock}{Limites da regra}
+Tokens com mais de 255 bytes são rejeitados. O tratamento de acentos é simples, sem suporte completo a todas as formas Unicode.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Da palavra para um inteiro}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\footnotesize]
+static uint64_t chave_para_inteiro(const char *palavra)
+{
+    uint64_t numero = 0;
+    for (size_t indice = 0; palavra[indice] != '\0'; indice++) {
+        unsigned char byte = (unsigned char)palavra[indice];
+        numero = numero * 131 + byte;
+    }
+    return numero;
+}
+\end{lstlisting}
+\begin{itemize}
+\item Cada byte influencia o resultado, sempre na mesma ordem.
+\item Exemplo: \texttt{hash} produz \textbf{235481250}.
+\item \texttt{uint64\_t} usa 64 bits sem sinal, com aritmética módulo $2^{64}$.
+\item Essa conversão prepara a chave textual. A função atribuída continua sendo a dobra H4.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{H4: cálculo por dobra}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\footnotesize]
+size_t hash_indice(const char *palavra, size_t capacidade)
+{
+    uint64_t numero = chave_para_inteiro(palavra);
+    uint64_t soma = 0;
+    while (numero > 0) {
+        uint64_t grupo = numero % 10000;
+        soma = soma + grupo;
+        numero = numero / 10000;
+    }
+    return (size_t)(soma % capacidade);
+}
+\end{lstlisting}
+Para \texttt{hash}: $235481250$ se divide em $2$, $3548$ e $1250$.
+\[
+\text{soma}=2+3548+1250=4800,\qquad h(\texttt{hash})=4800\bmod m.
+\]
+Com $m=2$, o índice é $0$. O módulo garante um resultado em $[0,m-1]$.
+\end{frame}
+
+\begin{frame}{E1.1: capacidade fixa e estados}
+\begin{itemize}
+\item Capacidade padrão: $m=64$. Podemos escolher outro valor antes de iniciar.
+\item \texttt{calloc} reserva o vetor inicial. O programa não o redimensiona.
+\item ``Estático'', na convenção da atividade, significa capacidade fixa durante o uso.
+\end{itemize}
+\medskip
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lp{10cm}}\toprule
+Estado & Como interpretar\\\midrule
+\texttt{VAZIO} & Nunca ocupado desde a criação. Uma busca pode parar aqui.\\
+\texttt{OCUPADO} & Há uma palavra válida para comparar.\\
+\texttt{REMOVIDO} & Um registro foi excluído. A busca deve continuar.\\\bottomrule
+\end{tabular}\par
+\medskip
+O vetor de linhas de uma palavra pode crescer. Isso não aumenta as posições da tabela hash.
+\end{frame}
+
+\begin{frame}{C2: colisão e sondagem linear}
+\[
+p_i(k)=(h(k)+i)\bmod m,\qquad i=0,1,\ldots,m-1.
+\]
+Com $m=2$, \texttt{hash} e \texttt{tabela} têm índice inicial $0$.
+\medskip
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{cccl}\toprule
+Palavra & Índice inicial & Posição ocupada & Motivo\\\midrule
+\texttt{hash} & 0 & 0 & Primeira posição livre.\\
+\texttt{tabela} & 0 & 1 & A posição 0 já estava ocupada.\\\bottomrule
+\end{tabular}
+\end{center}
+\begin{block}{O módulo permite voltar ao início}
+Se a posição inicial for a última do vetor, a próxima tentativa usa a posição 0. Após m tentativas, todas as posições foram visitadas.
+\end{block}
+\end{frame}
+
+\begin{frame}{Inserção: decisões do algoritmo}
+\begin{enumerate}
+\item Procurar a chave para impedir uma duplicata, inclusive depois de um removido.
+\item Calcular o índice inicial com H4.
+\item Percorrer o vetor pela sondagem linear.
+\item Usar a primeira posição vazia ou removida.
+\item Registrar palavra e frequência, incrementar n e contar a colisão aplicável.
+\end{enumerate}
+\begin{block}{Dois resultados importantes}
+\textbf{Duplicata:} retorna \texttt{RES\_DUPLICADA}, sem substituir o valor.
+\par\smallskip
+\textbf{Sem posição disponível:} retorna \texttt{RES\_CHEIA}, sem crescer o vetor.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Busca: como o código percorre o vetor}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\footnotesize]
+size_t indice = (indice_inicial + tentativa) % tabela->capacidade;
+Posicao *posicao = &tabela->posicoes[indice];
+if (posicao->estado == VAZIO) {
+    break;
+}
+if (posicao->estado == OCUPADO) {
+    if (strcmp(posicao->palavra.chave, chave) == 0) {
+        return indice;
+    }
+}
+\end{lstlisting}
+Trecho dentro do laço de sondagem. \texttt{strcmp(...)=0} significa strings iguais. Se não encontrar a chave, a função retorna \texttt{tabela->capacidade}. O laço visita no máximo m posições.
+\end{frame}
+
+\begin{frame}[fragile]{Remoção: por que manter REMOVIDO}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\footnotesize]
+size_t indice = localizar(tabela, chave);
+if (indice == tabela->capacidade) {
+    return RES_AUSENTE;
+}
+free(tabela->posicoes[indice].palavra.linhas);
+tabela->posicoes[indice].palavra = (Palavra){0};
+tabela->posicoes[indice].estado = REMOVIDO;
+tabela->quantidade--;
+return RES_OK;
+\end{lstlisting}
+\begin{itemize}
+\item Após remover \texttt{hash} da posição 0, \texttt{tabela} ainda está na posição 1.
+\item Se a posição 0 virasse \texttt{VAZIO}, a busca pararia antes de encontrar \texttt{tabela}.
+\item \texttt{REMOVIDO} preserva o caminho e permite reutilizar a posição depois.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Atualização e listagem}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\footnotesize]
+size_t indice = localizar(tabela, chave);
+if (indice == tabela->capacidade) {
+    return RES_AUSENTE;
+}
+tabela->posicoes[indice].palavra.frequencia = frequencia;
+return RES_OK;
+\end{lstlisting}
+\begin{itemize}
+\item Exemplo: atualizar \texttt{tabela} de frequência 2 para 7 mantém a mesma chave.
+\item A atualização mantém as linhas já registradas e não cria outro registro.
+\item A listagem percorre o vetor e imprime somente posições ocupadas.
+\item A exibição da estrutura também mostra vazios, removidos, índice inicial e contadores.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Indexação: palavra nova ou repetida}
+\begin{lstlisting}[language=C,basicstyle=\ttfamily\small]
+if (palavra != NULL) {
+    palavra->frequencia++;
+    tabela_adicionar_linha(palavra, numero_linha);
+    ocorrencias_aceitas++;
+}
+\end{lstlisting}
+\begin{itemize}
+\item Primeiro, buscamos a palavra normalizada na tabela.
+\item Se ainda não existe, tentamos inseri-la com frequência zero.
+\item Com um registro disponível, somamos a ocorrência e guardamos a linha.
+\item Palavra já existente recebe novas ocorrências mesmo com a tabela cheia.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Contadores, capacidade e custo}
+\begin{itemize}
+\item $m$: quantidade fixa de posições do vetor.
+\item $n$: quantidade atual de palavras distintas armazenadas.
+\item $\alpha=n/m$: fator de carga, isto é, a ocupação da tabela.
+\item Uma colisão é contada quando uma nova chave aceita encontra sua posição inicial ocupada por outra.
+\item Duplicatas e atualizações não aumentam esse contador. Remover reduz n, mas não apaga o histórico de colisões.
+\end{itemize}
+\begin{block}{Custo das operações}
+A sondagem pode visitar até m posições: pior caso $O(m)$, com chaves de tamanho limitado. A distribuição das chaves e a ocupação influenciam o custo observado.
+\end{block}
+\end{frame}
+
+\begin{frame}{Testes manuais: entradas e resultados}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{6.6cm}p{6.5cm}@{}}\toprule
+Entrada / caso & Esperado e obtido na execução\\\midrule
+Buscar em tabela vazia & Ausente. OK.\\
+Inserir \texttt{hash=1} e buscar & Frequência 1. OK.\\
+Buscar chave inexistente & Ausente. OK.\\
+Inserir \texttt{hash} novamente & Chave duplicada. OK.\\
+Inserir \texttt{tabela} em colisão & Índices 0 e 0, uma colisão. OK.\\
+Inserir terceira chave em m=2 & Tabela cheia. OK.\\
+Remover \texttt{hash}, buscar \texttt{tabela} & \texttt{tabela} continua presente. OK.\\
+Atualizar \texttt{tabela=7} & Mesma chave, frequência 7 e n=1. OK.\\\bottomrule
+\end{tabular}
+\medskip
+\normalsize
+\textbf{Oito casos conferidos pelo menu do hashapp.}\par
+Registro em \arquivo{resultados/testes_manuais.md}: entradas, esperado, obtido e situação. A opção 6 exibe a estrutura. Redimensionamento não se aplica a E1.1.
+\end{frame}
+
+\begin{frame}{Análise experimental: metodologia}
+\begin{enumerate}
+\item Usar $n=100$, $1.000$ e $10.000$ registros, com $m=2n$ e $\alpha=0{,}5$.
+\item Criar uma tabela nova em cada uma das \textbf{cinco repetições} por cenário.
+\item Inserir as primeiras n chaves: \texttt{palavra0}, \texttt{palavra1}, etc.
+\item Buscar as n chaves presentes e depois outras n chaves ausentes.
+\item Medir inserção e buscas com \texttt{clock()}, além das colisões de inserção.
+\end{enumerate}
+\begin{block}{Regra de medição}
+Tempos de CPU em milissegundos para o lote inteiro. A média é a soma das cinco medições dividida por cinco. Geração das chaves e criação da tabela ficam fora da medição.
+\end{block}
+\end{frame}
+
+\begin{frame}{Resultados: médias de cinco repetições}
+\begin{center}
+\small\setlength{\tabcolsep}{7pt}\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{rrrrrrr}\toprule
+n & m & $\alpha$ & Colisões & Inserção & Busca ok & Busca aus.\\
+ & & & & (ms) & (ms) & (ms)\\\midrule
+100 & 200 & 0,50 & 18 & 0,023 & 0,012 & 0,036\\
+1.000 & 2.000 & 0,50 & 304 & 0,354 & 0,144 & 0,281\\
+10.000 & 20.000 & 0,50 & 4.953 & 3,606 & 1,595 & 3,302\\
+\bottomrule\end{tabular}
+\end{center}
+\begin{itemize}
+\item No maior cenário, 4.953 inserções encontraram o índice inicial ocupado.
+\item Capacidade suficiente: nenhuma necessidade de crescimento.
+\item Tempos representam lotes de n operações. Para uma operação, dividir por n.
+\item Os tempos podem variar quando os experimentos forem executados em outra máquina.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Discussão dos resultados e limitações}
+\begin{itemize}
+\item Mesmo com $\alpha=0{,}5$, as colisões mudam com a capacidade e o conjunto de chaves.
+\item A dobra pode concentrar índices. A sondagem linear pode formar blocos de posições ocupadas.
+\item Uma busca ausente precisa encontrar um vazio ou percorrer a tabela, enquanto uma busca presente para ao encontrar a palavra.
+\item As chaves são sintéticas. Os tempos não representam a leitura e normalização de um texto completo.
+\item Mantivemos alfa constante: não medimos uma curva ao variar a ocupação.
+\end{itemize}
+\begin{alertblock}{Precisão da medição}
+Lotes pequenos têm precisão limitada pela resolução de \texttt{clock()}. Repetimos o mesmo conjunto para comparar as medições de forma consistente.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Demonstração 1: compilar com GCC}
+Na pasta \texttt{tabela-hash}, executar:
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+gcc -std=c11 -Wall -Wextra -O2 \
+  src/tabela.c src/aplicacao.c src/main.c -o hashapp
+
+gcc -std=c11 -Wall -Wextra -O2 \
+  src/tabela.c src/experimentos.c -o experimentos
+\end{lstlisting}
+\begin{itemize}
+\item O primeiro comando gera \texttt{hashapp}, o programa interativo.
+\item O segundo gera \texttt{experimentos}, usado somente para medir desempenho.
+\item A barra no final da linha continua o comando no terminal.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Demonstração 2: colisão, duplicata e tabela cheia}
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+./hashapp 2
+\end{lstlisting}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{1.8cm}p{5.5cm}p{5.8cm}@{}}\toprule
+Opção & Respostas seguintes & Resultado esperado\\\midrule
+1 & Palavra \texttt{hash}, frequência 1 & OK.\\
+2 & Palavra \texttt{hash} & Frequência 1.\\
+1 & Palavra \texttt{hash}, frequência 9 & Chave duplicada.\\
+1 & Palavra \texttt{tabela}, frequência 2 & OK, com colisão.\\
+6 & Nenhuma & m=2, n=2, uma colisão.\\
+1 & Palavra \texttt{extra}, frequência 1 & Tabela cheia.\\\bottomrule
+\end{tabular}
+\medskip
+\normalsize
+No campo \textbf{Opção}, digitar o número. A palavra só deve ser digitada quando aparecer \textbf{Palavra}.
+\end{frame}
+
+\begin{frame}{Demonstração 3: remoção, atualização e listagem}
+Continuar na mesma execução, após o exemplo anterior.
+\medskip
+\small\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{1.3cm}p{5.2cm}p{6.6cm}@{}}\toprule
+Opção & Respostas seguintes & Resultado esperado\\\midrule
+4 & Palavra \texttt{hash} & OK.\\
+2 & Palavra \texttt{tabela} & Presente, frequência 2.\\
+2 & Palavra \texttt{hash} & Chave não encontrada.\\
+6 & Nenhuma & Posição 0: REMOVIDO. Posição 1: tabela.\\
+3 & Palavra \texttt{tabela}, frequência 7 & OK, mantém a chave.\\
+5 & Nenhuma & Uma palavra: tabela, frequência 7.\\
+0 & Nenhuma & Encerra o programa.\\\bottomrule
+\end{tabular}
+\medskip
+\normalsize
+\textbf{Linhas vazias são esperadas:} estes registros foram inseridos manualmente, sem arquivo de origem.
+\end{frame}
+
+\begin{frame}[fragile]{Demonstração 4: indexar o texto de exemplo}
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+./hashapp 64
+\end{lstlisting}
+\begin{enumerate}
+\item Escolher a opção \textbf{7}.
+\item Informar \texttt{dados/texto\_exemplo.txt}.
+\item Conferir: \textbf{55 ocorrências, 41 palavras distintas, 0 rejeitadas}.
+\item Escolher \textbf{2} e consultar \texttt{Hash}: chave \texttt{hash}, frequência \textbf{3}, linhas \textbf{1, 2 e 5}.
+\item Escolher \textbf{5} para listar e \textbf{6} para exibir a estrutura.
+\item Escolher \textbf{0} para sair.
+\end{enumerate}
+\begin{block}{O que este exemplo demonstra}
+Normalização, repetição de palavras, frequência, linhas de ocorrência e consulta por chave.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Demonstração 5: executar os roteiros prontos}
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+./hashapp 64 < dados/demo_config40.txt
+
+./hashapp 32 < dados/demo_tabela_cheia.txt
+\end{lstlisting}
+\begin{itemize}
+\item O símbolo \texttt{<} usa as linhas do arquivo como respostas do menu.
+\item Primeiro roteiro: indexação, duplicata, consultas, remoção, atualização e listagem.
+\item Segundo roteiro: capacidade 32 para 41 palavras distintas.
+\item Resultado do segundo: \textbf{44 ocorrências aceitas, 32 palavras distintas e 11 ocorrências rejeitadas}.
+\end{itemize}
+\begin{alertblock}{Ocorrências não são palavras distintas}
+As 11 rejeitadas incluem repetições de palavras que não conseguiram entrar. Palavras já armazenadas continuam acumulando frequência.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Demonstração 6: medições e registro manual}
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+./experimentos
+
+./experimentos > resultados/experimentos_config40.md
+\end{lstlisting}
+\begin{itemize}
+\item Correção: repetir os casos dos slides anteriores pelo menu.
+\item Conferir entradas, esperado e obtido em \arquivo{resultados/testes_manuais.md}.
+\item Experimentos: conferir três linhas de resultados, com médias de cinco repetições.
+\item O símbolo \texttt{>} salva a saída, substituindo o conteúdo anterior do arquivo.
+\item Novas execuções podem produzir tempos diferentes, mesmo com as mesmas chaves.
+\end{itemize}
+\end{frame}
+
+\end{document}
