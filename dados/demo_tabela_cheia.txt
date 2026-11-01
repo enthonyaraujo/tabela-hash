@@ -1,0 +1,4 @@
+7
+dados/texto_exemplo.txt
+6
+0

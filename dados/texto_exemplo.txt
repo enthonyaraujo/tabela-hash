@@ -1,0 +1,5 @@
+A tabela hash é uma estrutura de dados que associa chaves a valores.
+Uma função hash converte a chave em um índice do vetor.
+Quando duas chaves caem no mesmo índice, ocorre uma colisão.
+Colisões são tratadas por encadeamento ou por sondagem; a sondagem linear,
+a sondagem quadrática e o hash duplo usam endereçamento aberto.
